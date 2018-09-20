@@ -4,13 +4,9 @@ bpm.wholeNote => dur bar;
 bpm.sixteenthNote => dur sixteenth;
 spork ~ bpm.barLoop();
 
-fun string error(string message) {
-    <<< message >>>;
-}
-
 fun int[] pattern(int pulses, int steps) {
     if (pulses > steps) {
-        error("Steps should be > pulses.");
+        <<< "Error! Steps should be > pulses." >>>;
     }
 
     if (steps % pulses == 0) {
@@ -32,7 +28,7 @@ fun int[] pattern(int pulses, int steps) {
         array[i] << 0;
     }
 
-    int m, k, limit, quotient;
+    int m, k, quotient;
     if (pulses > rests) {
         pulses => m; rests => k;
     } else {
@@ -40,28 +36,14 @@ fun int[] pattern(int pulses, int steps) {
     }
 
     while (k > 0) {
-        // To see stages.
-        <<< "STAGE: " + m, k, limit >>>;
-        for (0 => int i; i < array.size(); i++) {
-            for (0 => int j; j < array[i].size(); j++) {
-                <<< array[i][j] >>>;
-            }
-            <<< "***" >>>;
-        }
-
-        // <<< array[array.size()-1].size(), array[array.size()-2].size() >>>;
+        if (array[array.size()-2].size() > array[array.size()-1].size()) break;
         repeat (quotient + 1) {
-            if (array[array.size()-2].size() > array[array.size()-1].size()) break;
-            <<< "WORKING!" >>>;
-            <<< "ARRAY SIZE: " + array.size() >>>;
             for (m => int i; i < array.size(); i++) {
                 for (0 => int j; j < array[i].size(); j++) {
                     array[i][j] => int remainder;
-                    <<< "MOVING: " + i + " to " + (i - m)>>>;
                     array[i - m] << remainder;
                 }
                 if (array[i].size() > 0) {
-                <<< "POPPING " + array[i].size() + " ARRAYS!" >>>;
                     repeat(array[i].size()) array[i].popBack();
                 }
             }
@@ -93,7 +75,7 @@ fun int[] pattern(int pulses, int steps) {
     return flattened;
 }
 
-pattern(13, 24) @=> int result[];
+pattern(5, 12) @=> int result[];
 for (0 => int i; i < result.size(); i++) {
     <<< "RESULTS: " + result[i] >>>;
 }
