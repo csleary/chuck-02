@@ -3,115 +3,112 @@ bpm.setTempo(68);
 bpm.wholeNote => dur bar;
 bpm.sixteenthNote => dur sixteenth;
 spork ~ bpm.barLoop();
+Euclidean E;
 
-fun int[] pattern(int pulses, int steps) {
-    if (pulses > steps) {
-        <<< "Error! Steps should be > pulses." >>>;
-    }
+// dac => WvOut2 render => blackhole; 
+// "second_mix.wav" => render.wavFilename;
 
-    if (steps % pulses == 0) {
-        int array[0];
-        steps / pulses => int quotient; 
-        for (0 => int i; i < pulses; i++) {
-            array << 1;
-            repeat(quotient - 1) array << 0;
-        }
-        return array;
-    }
+GVerb reverb => dac;
+1. => reverb.gain;
+fun void tone (float pitch, dur length, float velocity)
+{
+    // <<< "Pitch: " + pitch >>>;
+    Step pitchMod => ADSR envPitch => SinOsc oscil => ADSR envAmp => dac;
+    envAmp => Gain send => reverb;
+    .3 => send.gain;
 
-    int array[steps][0];
-    steps - pulses => int rests;
-    for (0 => int i; i < pulses; i++) {
-        array[i] << 1;
-    }
-    for (pulses => int i; i < steps; i++) {
-        array[i] << 0;
-    }
+    2 => oscil.sync;
+    (velocity/127) * (1./10) => oscil.gain;
 
-    int m, k, quotient;
-    if (pulses > rests) {
-        pulses => m; rests => k;
-    } else {
-        pulses => k; rests => m;
-    }
+    Std.mtof(.1) => pitchMod.next;
+    .2 => envPitch.gain;
 
-    while (k > 0) {
-        if (array[array.size()-2].size() > array[array.size()-1].size()) break;
-        repeat (quotient + 1) {
-            for (m => int i; i < array.size(); i++) {
-                for (0 => int j; j < array[i].size(); j++) {
-                    array[i][j] => int remainder;
-                    array[i - m] << remainder;
-                }
-                if (array[i].size() > 0) {
-                    repeat(array[i].size()) array[i].popBack();
-                }
-            }
-
-            while (array[array.size() - 1].size() == 0) {
-                array.popBack();
-            }
-        }
-        <<< "AFTER PROCESSING: " + m, k >>>;
-        for (0 => int i; i < array.size(); i++) {
-            for (0 => int j; j < array[i].size(); j++) {
-                <<< array[i][j] >>>;
-            }
-            <<< "***" >>>;
-        }
-
-        m/k => quotient;
-        k => int tmp;
-        m % k => k;
-        tmp => m;
-    }
-
-    int flattened[0];
-    for (0 => int i; i < array.size(); i++) {
-        for (0 => int j; j < array[i].size(); j++) {
-            flattened << array[i][j];
-        }
-    }
-    return flattened;
-}
-
-pattern(5, 12) @=> int result[];
-for (0 => int i; i < result.size(); i++) {
-    <<< "RESULTS: " + result[i] >>>;
-}
-
-fun void tone (float freq, dur length) {
-    SinOsc oscil => ADSR envAmp => dac;
-    1./8 => oscil.gain;
-    Std.mtof(freq) => oscil.freq;
+    Std.mtof(pitch) => oscil.freq;
+    envPitch.set(10::ms, length, 1, 2::sixteenth);
     envAmp.set(10::ms, length, .1, 4::sixteenth);
+    envPitch.keyOn();
     envAmp.keyOn();
     length/2 => now;
+    envPitch.keyOff();
     envAmp.keyOff();
     envAmp.releaseTime() => now;
 }
 
-fun void seq (int array[], float pitch) {
+fun void seq (int array[], float pitch, float velocity)
+{
     bar/array.size() => dur div;
 
-    for (0 => int i; i < array.size(); i++) {
-        if (array[i]) {
-            spork ~ tone(pitch, div);
+    for (0 => int i; i < array.size(); i++)
+    {
+        if (array[i])
+        {
+            spork ~ tone(pitch, div, velocity);
         }
         div => now;
     }
     bar => now;
 }
 
-// while(true) {
-//     // spork ~ seq(pattern(4, 9), 82);
-//     // spork ~ seq(pattern(3, 9), 79);
-//     spork ~ seq(pattern(1, 16), 72);
-//     spork ~ seq(pattern(2, 7), 74);
-//     spork ~ seq(pattern(6, 13), 58);
-//     spork ~ seq(pattern(3, 7), 55);
-//     spork ~ seq(pattern(3, 14), 48);
-//     spork ~ seq(pattern(3, 10), 36);
-//     spork ~ seq(pattern(1, 2), 24);
-//     bar => now;
-// }
+while (bpm.locator < 80)
+{
+    repeat (6)
+    {
+        partA();
+        bar => now;
+    }
+        partB();
+        bar => now;
+        partC();
+        bar => now;
+}
+bar => now;
+// render.closeFile();
+
+fun void partA()
+{
+    spork ~ seq(E.pattern(2, 11), 84, 30);
+    spork ~ seq(E.pattern(3, 9), 76, 30);
+    spork ~ seq(E.pattern(2, 7), 74, 30);
+    spork ~ seq(E.pattern(1, 16), 72, 30);
+    
+    spork ~ seq(E.pattern(2, 17), 60, 127);
+    spork ~ seq(E.pattern(6, 13), 58, 127);
+    spork ~ seq(E.pattern(3, 7), 55, 127);
+
+    spork ~ seq(E.pattern(3, 14), 48, 127);
+    spork ~ seq(E.pattern(3, 10), 36, 127);
+    spork ~ seq(E.pattern(1, 2), 24, 127);
+}
+
+fun void partB()
+{
+    spork ~ seq(E.pattern(2, 11), 82, 30);
+    spork ~ seq(E.pattern(3, 9), 74, 30);
+    spork ~ seq(E.pattern(2, 7), 72, 30);
+    spork ~ seq(E.pattern(1, 16), 70, 30);
+    
+    spork ~ seq(E.pattern(2, 17), 60, 127);
+    spork ~ seq(E.pattern(6, 13), 58, 127);
+    spork ~ seq(E.pattern(3, 7), 55, 127);
+
+    spork ~ seq(E.pattern(3, 14), 43, 127);
+    spork ~ seq(E.pattern(3, 10), 31, 127);
+    spork ~ seq(E.pattern(1, 2), 19, 127);
+}
+
+fun void partC()
+{
+    spork ~ seq(E.pattern(3, 11), 84, 30);
+    spork ~ seq(E.pattern(3, 7), 76, 30);
+    spork ~ seq(E.pattern(2, 7), 72, 30);
+    spork ~ seq(E.pattern(1, 16), 69, 30);
+    spork ~ seq(E.pattern(4, 9), 67, 30);
+    
+    spork ~ seq(E.pattern(2, 17), 60, 127);
+    spork ~ seq(E.pattern(6, 13), 57, 127);
+    spork ~ seq(E.pattern(3, 7), 53, 127);
+
+    spork ~ seq(E.pattern(3, 14), 41, 127);
+    spork ~ seq(E.pattern(3, 10), 29, 127);
+    spork ~ seq(E.pattern(1, 2), 17, 127);
+}
